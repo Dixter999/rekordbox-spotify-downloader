@@ -1,0 +1,13 @@
+# Example POP Playlist
+# Format: Artist - Song Title
+
+The Weeknd - Blinding Lights
+Dua Lipa - Levitating
+Harry Styles - As It Was
+Ed Sheeran - Shape of You
+Taylor Swift - Anti-Hero
+Billie Eilish - bad guy
+Post Malone - Circles
+Ariana Grande - 7 rings
+Bruno Mars - Uptown Funk
+Doja Cat - Say So

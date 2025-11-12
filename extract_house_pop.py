@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+"""
+Extrae canciones de HOUSE y POP usando Spotify API
+"""
+
+import json
+import requests
+import sys
+
+# Token de Spotify (obtenido de spotify-backup)
+SPOTIFY_TOKEN = "BQCZw06HEeV8wVgcouDXTE595lK2j7uy1qheQ9IEADLJAX0GLgGcaw7kLe90XsV4G4k6g5S0cnOrzEJkO4fVtGZdtq6NHmgasSS1iRxpb-lnp1P0zdetRdv3cl-JmdYRcJEphp2VSVCgaXYCarIiKn-E0wP5Ai6aRooGKyaG-C4gRSvPmKIjkh45Fox8t8Pn4hw4CuL9kP-60hYJOkdxaziZ0JwTJoDj9o705OLKNZ2e2SSu-I3A44_NuqQL"
+
+
+def get_track_info(track_ids, token):
+    """Obtiene información de múltiples tracks"""
+    url = "https://api.spotify.com/v1/tracks"
+    headers = {"Authorization": f"Bearer {token}"}
+
+    all_tracks = []
+    # Spotify permite max 50 tracks por request
+    for i in range(0, len(track_ids), 50):
+        batch = track_ids[i:i+50]
+        params = {"ids": ",".join(batch)}
+
+        try:
+            response = requests.get(url, headers=headers, params=params)
+            if response.status_code == 200:
+                data = response.json()
+                for track in data.get('tracks', []):
+                    if track:
+                        artists = ", ".join([a['name'] for a in track.get('artists', [])])
+                        title = track.get('name', '')
+                        all_tracks.append(f"{artists} - {title}")
+            else:
+                print(f"Error API: {response.status_code}")
+        except Exception as e:
+            print(f"Error: {e}")
+
+    return all_tracks
+
+
+def main():
+    print("="*60)
+    print("  Extrayendo HOUSE y POP de Spotify")
+    print("="*60)
+
+    # Leer JSON
+    with open('lagowski777@2025_11_12.json', 'r') as f:
+        data = json.load(f)
+
+    playlists = data.get('playlists', {})
+
+    all_tracks = []
+    stats = {}
+
+    for name in ['HOUSE', 'POP']:
+        if name in playlists:
+            playlist_data = playlists[name]
+            tracks = playlist_data.get('tracks', [])
+            track_ids = [t['id'] for t in tracks if 'id' in t]
+
+            print(f"\n📂 {name}: {len(track_ids)} canciones")
+            print(f"   Obteniendo información de Spotify...")
+
+            track_names = get_track_info(track_ids, SPOTIFY_TOKEN)
+            stats[name] = len(track_names)
+
+            # Evitar duplicados
+            for track in track_names:
+                if track not in all_tracks:
+                    all_tracks.append(track)
+
+            print(f"   ✓ {len(track_names)} tracks obtenidos")
+
+    # Guardar
+    output_file = "spotify_house_pop.txt"
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(f"# Playlists: HOUSE y POP\n")
+        f.write(f"# Total de canciones únicas: {len(all_tracks)}\n\n")
+        for track in all_tracks:
+            f.write(f"{track}\n")
+
+    print(f"\n{'='*60}")
+    print(f"  Resumen")
+    print(f"{'='*60}")
+    for name, count in stats.items():
+        print(f"  {name}: {count} canciones")
+    print(f"\n  Total único: {len(all_tracks)} canciones")
+    print(f"  Archivo: {output_file}")
+
+    print(f"\n⚠️  ADVERTENCIA:")
+    print(f"  ¡Son {len(all_tracks)} canciones!")
+    print(f"  La descarga completa puede tomar varias horas.")
+    print(f"\n💡 Para descargar: ./download.sh {output_file}")
+
+
+if __name__ == "__main__":
+    main()

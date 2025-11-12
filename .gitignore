@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Music files
+*.mp3
+*.m4a
+*.wav
+*.flac
+*.webp
+rekordbox_music/
+
+# Spotify data
+*@*.json
+spotify_*.txt
+
+# Logs
+*.log
+metadata_update_log.txt
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Project specific
+lost_frequencies_set.txt
+martin_garrix_set.txt
+canciones_ejemplo.txt
+download.sh
+reorganize_folders.sh
+reorganize_4_folders.sh
