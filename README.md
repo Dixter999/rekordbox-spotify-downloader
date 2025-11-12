@@ -9,6 +9,27 @@ Transform your Spotify playlists into a fully organized DJ library with automati
 
 ---
 
+## 💡 Why This Project Exists
+
+As a DJ, I faced a critical limitation: **Rekordbox doesn't allow editing tracks from Spotify streaming**. You can't analyze cue points, loops, or hot cues on Spotify tracks - you need local files.
+
+The problem? Manually downloading hundreds of songs from Spotify playlists was tedious and time-consuming.
+
+**The Solution:** I discovered two amazing open-source projects:
+- **[spotify-backup](https://github.com/caseychu/spotify-backup)** by [@caseychu](https://github.com/caseychu) - Extract Spotify playlists to JSON
+- **[ytm-dlapi](https://github.com/Thanatoslayer6/ytm-dlapi)** - YouTube Music download concept
+
+I combined and enhanced these tools with:
+- ✨ **Automatic KEY detection** using Essentia (Camelot notation for harmonic mixing)
+- 🥁 **BPM analysis** for perfect beatmatching
+- 🎯 **Quality filtering** (removes LIVE versions, UNRELEASED tracks, short clips)
+- 📚 **Smart organization** (by genre, artist, or custom folders)
+- 🔄 **Batch processing** for hundreds of songs at once
+
+Now you can build a complete Rekordbox library from your Spotify playlists with full editing capabilities!
+
+---
+
 ## ✨ Features
 
 ### 🎹 **Advanced Music Analysis**
@@ -339,10 +360,21 @@ This tool is for **personal use only**. Please respect copyright laws and only d
 
 ## 🙏 Acknowledgments
 
-- **[yt-dlp team](https://github.com/yt-dlp/yt-dlp)** for the excellent YouTube downloader
-- **[Music Technology Group](https://www.upf.edu/web/mtg)** for Essentia
-- **[caseychu](https://github.com/caseychu)** for spotify-backup
-- **Pioneer DJ** for Rekordbox software
+This project stands on the shoulders of amazing open-source work:
+
+### Core Inspiration
+- **[spotify-backup](https://github.com/caseychu/spotify-backup)** by [@caseychu](https://github.com/caseychu) - The foundation for Spotify playlist extraction
+- **[ytm-dlapi](https://github.com/Thanatoslayer6/ytm-dlapi)** by [@Thanatoslayer6](https://github.com/Thanatoslayer6) - Initial concept for YouTube Music downloads
+
+### Essential Tools
+- **[yt-dlp team](https://github.com/yt-dlp/yt-dlp)** - Powerful YouTube downloader that makes this possible
+- **[Music Technology Group (MTG)](https://www.upf.edu/web/mtg)** - Creators of Essentia for music analysis
+- **[Mutagen contributors](https://mutagen.readthedocs.io/)** - Python audio metadata library
+- **[FFmpeg team](https://ffmpeg.org/)** - Universal audio/video processing
+
+### Special Thanks
+- **Pioneer DJ** for creating Rekordbox, the best DJ software for professional mixing
+- **The DJ community** for inspiring this project and providing feedback
 
 ---
 
