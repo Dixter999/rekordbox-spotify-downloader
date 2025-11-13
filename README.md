@@ -97,24 +97,11 @@ brew install ffmpeg eigen fftw libsamplerate libyaml
 
 ## 📖 Usage
 
-### 1. Download Songs from YouTube
+### Option 1: Download from a Simple Song List (No Spotify Needed)
 
-**Basic usage:**
-```bash
-source venv/bin/activate
-python youtube_to_rekordbox_enhanced.py songs.txt
-```
+**1. Create a text file with song names:**
 
-**Organize by folder:**
-```bash
-# Download into HOUSE folder
-python youtube_to_rekordbox_enhanced.py spotify_HOUSE.txt 90 HOUSE
-
-# Download into POP folder
-python youtube_to_rekordbox_enhanced.py spotify_POP.txt 90 POP
-```
-
-**Song list format** (`songs.txt`):
+`songs.txt`:
 ```
 Martin Garrix - Animals
 Lost Frequencies - Are You With Me
@@ -122,22 +109,80 @@ Avicii - Levels
 David Guetta, Bebe Rexha - I'm Good (Blue)
 ```
 
-### 2. Extract Spotify Playlists
+**2. Download with KEY and BPM detection:**
+```bash
+source venv/bin/activate
+python3 youtube_to_rekordbox_enhanced.py songs.txt
+```
 
-**Authenticate with Spotify:**
+**3. Organize by folder (optional):**
+```bash
+# Download into HOUSE folder
+python3 youtube_to_rekordbox_enhanced.py house_songs.txt 90 HOUSE
+
+# Download into POP folder
+python3 youtube_to_rekordbox_enhanced.py pop_songs.txt 90 POP
+```
+
+---
+
+### Option 2: Extract from Your Spotify Playlists
+
+**1. Get your Spotify data:**
+
+First, clone the spotify-backup tool (only needs to be done once):
+```bash
+git clone https://github.com/caseychu/spotify-backup.git
+```
+
+Then authenticate with your Spotify account:
 ```bash
 cd spotify-backup
-python spotify-backup.py YOUR_SPOTIFY_USERNAME
+python3 spotify-backup.py youremail@example.com
+cd ..
 ```
 
-This creates a JSON file: `YOUR_USERNAME@2025_11_12.json`
+This will:
+- Open your browser for Spotify OAuth login
+- Download all your playlists to a JSON file: `youremail@example_2025_11_13.json`
 
-**Extract specific playlists:**
+**2. Extract specific playlists:**
+
 ```bash
-python extract_spotify_playlists.py YOUR_USERNAME@2025_11_12.json
+python3 extract_spotify_playlists.py spotify-backup/youremail@example_2025_11_13.json
 ```
 
-You can filter by playlist names (e.g., "HOUSE", "POP") or extract all.
+The script will ask which playlists you want to extract. It creates text files like:
+- `spotify_HOUSE.txt`
+- `spotify_POP.txt`
+- etc.
+
+**3. Download the songs:**
+```bash
+# Download HOUSE playlist
+python3 youtube_to_rekordbox_enhanced.py spotify_HOUSE.txt 90 HOUSE
+
+# Download POP playlist
+python3 youtube_to_rekordbox_enhanced.py spotify_POP.txt 90 POP
+```
+
+---
+
+### Simple 3-Step Workflow Summary
+
+```bash
+# Step 1: Get your Spotify playlists (one-time setup)
+git clone https://github.com/caseychu/spotify-backup.git
+cd spotify-backup && python3 spotify-backup.py youremail@example.com && cd ..
+
+# Step 2: Extract the playlists you want
+python3 extract_spotify_playlists.py spotify-backup/youremail@example_2025_11_13.json
+
+# Step 3: Download with KEY/BPM detection
+python3 youtube_to_rekordbox_enhanced.py spotify_HOUSE.txt 90 HOUSE
+```
+
+Done! Your music is now in `rekordbox_music/HOUSE/` with KEY (Camelot) and BPM tags.
 
 ### 3. Update Metadata for Existing Files
 
