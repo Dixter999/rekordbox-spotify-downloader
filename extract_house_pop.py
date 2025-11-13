@@ -6,9 +6,7 @@ Extrae canciones de HOUSE y POP usando Spotify API
 import json
 import requests
 import sys
-
-# Token de Spotify (obtenido de spotify-backup)
-SPOTIFY_TOKEN = "BQCZw06HEeV8wVgcouDXTE595lK2j7uy1qheQ9IEADLJAX0GLgGcaw7kLe90XsV4G4k6g5S0cnOrzEJkO4fVtGZdtq6NHmgasSS1iRxpb-lnp1P0zdetRdv3cl-JmdYRcJEphp2VSVCgaXYCarIiKn-E0wP5Ai6aRooGKyaG-C4gRSvPmKIjkh45Fox8t8Pn4hw4CuL9kP-60hYJOkdxaziZ0JwTJoDj9o705OLKNZ2e2SSu-I3A44_NuqQL"
+import os
 
 
 def get_track_info(track_ids, token):
@@ -40,12 +38,29 @@ def get_track_info(track_ids, token):
 
 
 def main():
+    # Check arguments
+    if len(sys.argv) < 2:
+        print("Uso: python extract_house_pop.py <spotify_backup.json>")
+        print("\nEjemplo:")
+        print("  python extract_house_pop.py youremail@2025_11_13.json")
+        sys.exit(1)
+
+    json_file = sys.argv[1]
+
     print("="*60)
     print("  Extrayendo HOUSE y POP de Spotify")
     print("="*60)
 
+    # Read Spotify token from environment variable (safer than hardcoding)
+    spotify_token = os.getenv('SPOTIFY_TOKEN')
+    if not spotify_token:
+        print("\n⚠️  ERROR: SPOTIFY_TOKEN no encontrado")
+        print("Configure la variable de entorno:")
+        print("  export SPOTIFY_TOKEN='your_token_here'")
+        sys.exit(1)
+
     # Leer JSON
-    with open('lagowski777@2025_11_12.json', 'r') as f:
+    with open(json_file, 'r') as f:
         data = json.load(f)
 
     playlists = data.get('playlists', {})
@@ -62,7 +77,7 @@ def main():
             print(f"\n📂 {name}: {len(track_ids)} canciones")
             print(f"   Obteniendo información de Spotify...")
 
-            track_names = get_track_info(track_ids, SPOTIFY_TOKEN)
+            track_names = get_track_info(track_ids, spotify_token)
             stats[name] = len(track_names)
 
             # Evitar duplicados

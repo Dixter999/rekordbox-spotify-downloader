@@ -49,11 +49,14 @@ def extract_playlists(json_file, playlist_names, output_file="spotify_extracted.
 
 
 if __name__ == "__main__":
-    json_file = "lagowski777@2025_11_12.json"
-
-    if not json_file:
-        print("Uso: python extract_spotify_playlists.py")
+    # Check if JSON file is provided as argument
+    if len(sys.argv) < 2:
+        print("Uso: python extract_spotify_playlists.py <spotify_backup.json>")
+        print("\nEjemplo:")
+        print("  python extract_spotify_playlists.py youremail@2025_11_13.json")
         sys.exit(1)
+
+    json_file = sys.argv[1]
 
     # Playlists a extraer
     playlists = ["HOUSE", "POP"]

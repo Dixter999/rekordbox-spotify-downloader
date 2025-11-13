@@ -19,9 +19,13 @@ build/
 *.webp
 rekordbox_music/
 
-# Spotify data
+# Spotify personal data (NEVER commit these!)
 *@*.json
+*@*.json:Zone.Identifier
 spotify_*.txt
+spotify-backup/
+extract_house_only.py
+extract_pop_only.py
 
 # Logs
 *.log
@@ -34,10 +38,21 @@ Thumbs.db
 *.swo
 *~
 
-# Project specific
+# Project specific (user data)
 lost_frequencies_set.txt
+lost_frequencies_remaining.txt
 martin_garrix_set.txt
 canciones_ejemplo.txt
 download.sh
 reorganize_folders.sh
 reorganize_4_folders.sh
+
+# Demo/tutorial files (don't commit)
+MEDIUM_TUTORIAL.md
+REDDIT_RESPONSES.md
+SCREENSHOTS_NEEDED.md
+README_ENHANCED.md
+
+# Alternative implementations (keep only main one)
+youtube_to_rekordbox.py
+youtube_to_rekordbox_no_ffmpeg.py
