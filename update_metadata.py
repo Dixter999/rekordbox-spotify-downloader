@@ -126,24 +126,24 @@ except Exception as e:
         print(f"\n[{index}/{total}] {file_path.name}")
 
         # Detect KEY
-        print("    🎹 Detectando KEY...", end=" ", flush=True)
+        print("    🎹 Detecting KEY...", end=" ", flush=True)
         key = self.detect_key(str(file_path))
         if key:
             print(f"✓ {key}")
         else:
-            print("✗ No detectada")
+            print("✗ Not detected")
 
         # Detect BPM
-        print("    🥁 Detectando BPM...", end=" ", flush=True)
+        print("    🥁 Detecting BPM...", end=" ", flush=True)
         bpm = self.detect_bpm(str(file_path))
         if bpm:
             print(f"✓ {bpm}")
         else:
-            print("✗ No detectado")
+            print("✗ Not detected")
 
         # Update metadata
         if key or bpm:
-            print("    💾 Actualizando metadata...", end=" ", flush=True)
+            print("    💾 Updating metadata...", end=" ", flush=True)
             if self.update_metadata(str(file_path), key, bpm):
                 print("✓")
                 return True, key, bpm

@@ -299,12 +299,12 @@ except Exception as e:
                         print(f"    🎹 KEY detected: {key}")
                         self.add_key_metadata(str(latest_file), key)
                     else:
-                        print(f"    ℹ KEY no detectada (requiere essentia)")
+                        print(f"    ℹ KEY not detected (requires essentia)")
 
                 print(f"    ✓ Downloaded successfully")
                 return True
             else:
-                print(f"    ✗ Error en descarga")
+                print(f"    ✗ Download error")
                 if result.stderr:
                     print(f"    Error: {result.stderr[:200]}")
                 self.failed_downloads.append(f"{artist} - {song}")
