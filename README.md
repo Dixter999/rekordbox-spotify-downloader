@@ -36,6 +36,7 @@ Now you can build a complete Rekordbox library from your Spotify playlists with 
 - **Automatic KEY Detection** in Camelot notation (1A-12A, 1B-12B) using Essentia
 - **BPM Detection** for perfect beatmatching
 - **ID3 Metadata Tagging** compatible with Rekordbox
+- **Lyrics Video Priority** - Downloads lyrics videos for cleaner audio (no video SFX)
 - **Audio Quality Filtering** (removes UNRELEASED, LIVE versions)
 - **Duration Filtering** (configurable minimum length, default 1:30)
 
@@ -43,12 +44,14 @@ Now you can build a complete Rekordbox library from your Spotify playlists with 
 - **Folder-based Organization** (HOUSE, POP, Artist folders, etc.)
 - **Batch Processing** of entire Spotify playlists
 - **Automatic MP3 Conversion** from YouTube audio
+- **CSV to TXT Converter** for Exportify playlists
 - **Windows/WSL Integration** for seamless cross-platform usage
 
 ### 🎼 **Spotify Integration**
+- **[Exportify](https://exportify.net/) Support** - Export playlists to CSV, convert to song list
 - **Extract Playlists** directly from your Spotify library
 - **Filter by Genre** (HOUSE, POP, or custom categories)
-- **OAuth Authentication** for secure access
+- **OAuth Authentication** for secure access (optional)
 - **Backup Your Music Library** to JSON format
 
 ---
@@ -128,15 +131,43 @@ python3 youtube_to_rekordbox_enhanced.py songs.txt
 **3. Organize by folder (optional):**
 ```bash
 # Download into HOUSE folder
-python3 youtube_to_rekordbox_enhanced.py house_songs.txt 90 HOUSE
+python3 youtube_to_rekordbox_enhanced.py house_songs.txt --folder HOUSE
 
-# Download into POP folder
-python3 youtube_to_rekordbox_enhanced.py pop_songs.txt 90 POP
+# Download into POP folder with custom min duration
+python3 youtube_to_rekordbox_enhanced.py pop_songs.txt --min-duration 120 --folder POP
+
+# Disable lyrics video preference (search for "audio" instead)
+python3 youtube_to_rekordbox_enhanced.py songs.txt --no-lyrics
 ```
 
 ---
 
-### Option 2: Extract from Your Spotify Playlists
+### Option 2: Export from Spotify with Exportify (Recommended)
+
+The easiest way to get your Spotify playlists!
+
+**1. Go to [Exportify](https://exportify.net/):**
+- Log in with your Spotify account
+- Click "Export" on any playlist to download a CSV file
+
+**2. Convert CSV to song list:**
+```bash
+python3 convert_csv_to_txt.py my_playlist.csv
+# Creates: my_playlist.txt
+```
+
+**3. Download the songs:**
+```bash
+python3 youtube_to_rekordbox_enhanced.py my_playlist.txt --folder HOUSE
+```
+
+**That's it!** No OAuth setup, no API keys - just export and download.
+
+---
+
+### Option 3: Extract from Your Spotify Playlists (Advanced)
+
+For more control, you can use the spotify-backup tool:
 
 **1. Get your Spotify data:**
 
@@ -213,10 +244,11 @@ python update_metadata.py /path/to/your/music/folder
 ```
 rekordbox-spotify-downloader/
 ├── youtube_to_rekordbox_enhanced.py    # Main download script with filters
+├── convert_csv_to_txt.py               # Convert Exportify CSV to song list
 ├── update_metadata.py                   # Update KEY/BPM for existing files
 ├── update_all_metadata.sh              # Batch metadata updater
 ├── extract_spotify_playlists.py        # Extract playlists from JSON
-├── spotify-backup/                     # Spotify OAuth integration
+├── spotify-backup/                     # Spotify OAuth integration (optional)
 │   └── spotify-backup.py               # Backup Spotify library
 ├── requirements.txt                    # Python dependencies
 ├── README.md                           # This file
@@ -224,7 +256,7 @@ rekordbox-spotify-downloader/
 └── examples/                           # Example song lists
     ├── example_house.txt
     ├── example_pop.txt
-    └── example_mixed.txt
+    └── martin_garrix_set.txt
 ```
 
 ---

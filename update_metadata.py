@@ -4,12 +4,17 @@ Update BPM and KEY metadata for existing MP3 files
 """
 
 import sys
+import os
 from pathlib import Path
 import subprocess
 
 
 class MetadataUpdater:
     def __init__(self):
+        # Use venv python if available
+        venv_python = Path("venv/bin/python3")
+        self.python_path = str(venv_python) if venv_python.exists() else "python3"
+
         self.camelot_map = {
             # Major keys (B suffix)
             'C major': '8B', 'G major': '9B', 'D major': '10B', 'A major': '11B',
@@ -28,7 +33,7 @@ class MetadataUpdater:
         """Detect KEY using essentia"""
         try:
             cmd = [
-                "python3", "-c",
+                self.python_path, "-c",
                 f"""
 import sys
 try:
@@ -61,7 +66,7 @@ except Exception as e:
         """Detect BPM using essentia"""
         try:
             cmd = [
-                "python3", "-c",
+                self.python_path, "-c",
                 f"""
 import sys
 try:
@@ -94,7 +99,7 @@ except Exception as e:
         """Update KEY and BPM metadata"""
         try:
             cmd = [
-                "python3", "-c",
+                self.python_path, "-c",
                 f"""
 import sys
 try:
