@@ -13,13 +13,14 @@ from pathlib import Path
 
 
 class YouTubeToRekordbox:
-    def __init__(self, output_dir="rekordbox_music", min_duration=90, main_folder=None):
+    def __init__(self, output_dir="rekordbox_music", min_duration=90, main_folder=None, prefer_lyrics=True):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         self.failed_downloads = []
         self.skipped_songs = []
         self.min_duration = min_duration  # Minimum duration in seconds (1:30 = 90s)
         self.main_folder = main_folder  # Main folder for grouping (HOUSE, POP, etc)
+        self.prefer_lyrics = prefer_lyrics  # Prefer lyrics videos over official videos
 
     def sanitize_filename(self, name):
         """Cleans filenames to avoid problematic characters"""
@@ -65,6 +66,55 @@ class YouTubeToRekordbox:
                 return True, f"contains '{keyword}'"
 
         return False, None
+
+    def search_with_lyrics_priority(self, artist, song):
+        """Search for lyrics video first, fallback to audio if not found or invalid.
+
+        Lyrics videos typically have clean audio without sound effects from music videos
+        (footsteps, ambient sounds, etc.), making them better for DJ use.
+
+        Returns:
+            tuple: (video_info dict, search_query used) or (None, None) if not found
+        """
+        if self.prefer_lyrics:
+            # Priority 1: Try lyrics video
+            lyrics_query = f"ytsearch1:{artist} {song} lyrics"
+            video_info = self.get_video_info(lyrics_query)
+
+            if video_info and self._is_relevant_result(video_info, artist, song):
+                print(f"    🎤 Found lyrics version")
+                return video_info, lyrics_query
+
+            # Priority 2: Fallback to audio search
+            print(f"    ℹ No lyrics version found, trying audio...")
+
+        audio_query = f"ytsearch1:{artist} {song} audio"
+        video_info = self.get_video_info(audio_query)
+
+        return video_info, audio_query
+
+    def _is_relevant_result(self, video_info, artist, song):
+        """Check if the search result is relevant to the requested song.
+
+        Validates that the found video title contains at least part of the
+        artist name or song title to avoid completely unrelated results.
+        """
+        if not video_info:
+            return False
+
+        title_lower = video_info.get('title', '').lower()
+        artist_lower = artist.lower()
+        song_lower = song.lower()
+
+        # Check if either artist or song appears in the title
+        artist_words = artist_lower.split()
+        song_words = song_lower.split()
+
+        # At least one significant word from artist or song should be in the title
+        artist_match = any(word in title_lower for word in artist_words if len(word) > 2)
+        song_match = any(word in title_lower for word in song_words if len(word) > 2)
+
+        return artist_match or song_match
 
     def get_video_info(self, search_query):
         """Gets video information before downloading"""
@@ -227,14 +277,12 @@ except Exception as e:
                 artist_dir = self.output_dir / artist_clean
             artist_dir.mkdir(parents=True, exist_ok=True)
 
-        search_query = f"ytsearch1:{artist} {song} audio"
-
         print(f"\n[{index}/{total}] Processing: {artist} - {song}")
         print(f"    Folder: {artist_dir}")
 
-        # Paso 1: Obtener información del video
+        # Step 1: Search with lyrics priority (if enabled)
         print(f"    🔍 Searching for video...")
-        video_info = self.get_video_info(search_query)
+        video_info, search_query = self.search_with_lyrics_priority(artist, song)
 
         if not video_info:
             print(f"    ✗ No se pudo encontrar el video")
@@ -340,9 +388,10 @@ except Exception as e:
         print(f"  YouTube to Rekordbox MP3 Downloader Enhanced")
         print(f"═══════════════════════════════════════════════")
         print(f"Total songs: {len(songs)}")
-        print(f"Directorio de salida: {self.output_dir.absolute()}")
-        print(f"Duration mínima: {self.min_duration // 60}:{self.min_duration % 60:02d}")
-        print(f"Filtros: UNRELEASED, Live, duración < 1:30")
+        print(f"Output directory: {self.output_dir.absolute()}")
+        print(f"Min duration: {self.min_duration // 60}:{self.min_duration % 60:02d}")
+        print(f"Prefer lyrics: {'Yes' if self.prefer_lyrics else 'No'}")
+        print(f"Filters: UNRELEASED, Live, duration < {self.min_duration}s")
         print(f"═══════════════════════════════════════════════\n")
 
         for i, (artist, song) in enumerate(songs, 1):
@@ -373,20 +422,53 @@ except Exception as e:
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Uso: python youtube_to_rekordbox_enhanced.py <song_list.txt> [min_duration] [main_folder]")
-        print("\nEjemplo:")
-        print("  python youtube_to_rekordbox_enhanced.py my_songs.txt")
-        print("  python youtube_to_rekordbox_enhanced.py my_songs.txt 120 HOUSE")
-        sys.exit(1)
+    import argparse
 
-    input_file = sys.argv[1]
-    min_duration = int(sys.argv[2]) if len(sys.argv) > 2 else 90  # Default 1:30
-    main_folder = sys.argv[3] if len(sys.argv) > 3 else None  # Folder principal opcional
-    output_dir = "rekordbox_music"
+    parser = argparse.ArgumentParser(
+        description='YouTube to Rekordbox MP3 Downloader - Enhanced Version',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python youtube_to_rekordbox_enhanced.py my_songs.txt
+  python youtube_to_rekordbox_enhanced.py my_songs.txt --min-duration 120 --folder HOUSE
+  python youtube_to_rekordbox_enhanced.py my_songs.txt --no-lyrics
+        """
+    )
 
-    downloader = YouTubeToRekordbox(output_dir, min_duration, main_folder)
-    downloader.process_file(input_file)
+    parser.add_argument('song_file', help='Text file with songs in format: Artist - Song')
+    parser.add_argument('--min-duration', type=int, default=90,
+                        help='Minimum song duration in seconds (default: 90)')
+    parser.add_argument('--folder', dest='main_folder', default=None,
+                        help='Main folder name for grouping downloads (e.g., HOUSE, POP)')
+    parser.add_argument('--output', dest='output_dir', default='rekordbox_music',
+                        help='Output directory (default: rekordbox_music)')
+
+    # Lyrics preference group
+    lyrics_group = parser.add_mutually_exclusive_group()
+    lyrics_group.add_argument('--prefer-lyrics', dest='prefer_lyrics', action='store_true',
+                              default=True, help='Prefer lyrics videos over official videos (default)')
+    lyrics_group.add_argument('--no-lyrics', dest='prefer_lyrics', action='store_false',
+                              help='Do not prefer lyrics videos, search for audio instead')
+
+    # Backwards compatibility: support positional arguments
+    parser.add_argument('legacy_duration', nargs='?', type=int, default=None,
+                        help=argparse.SUPPRESS)
+    parser.add_argument('legacy_folder', nargs='?', default=None,
+                        help=argparse.SUPPRESS)
+
+    args = parser.parse_args()
+
+    # Handle legacy positional arguments for backwards compatibility
+    min_duration = args.legacy_duration if args.legacy_duration is not None else args.min_duration
+    main_folder = args.legacy_folder if args.legacy_folder is not None else args.main_folder
+
+    downloader = YouTubeToRekordbox(
+        output_dir=args.output_dir,
+        min_duration=min_duration,
+        main_folder=main_folder,
+        prefer_lyrics=args.prefer_lyrics
+    )
+    downloader.process_file(args.song_file)
 
 
 if __name__ == "__main__":
