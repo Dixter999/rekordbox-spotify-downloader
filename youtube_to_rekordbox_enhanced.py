@@ -274,17 +274,34 @@ except Exception as e:
         ascii_text = ''.join(c for c in normalized if unicodedata.category(c) != 'Mn')
         return ascii_text.lower()
 
+    def _is_special_version(self, text):
+        """Check if the text indicates a special version (remix, extended, intro, etc.)."""
+        special_keywords = {'remix', 'extended', 'intro', 'deluxe', 'acoustic', 'live', 'radio edit', 'vip', 'bootleg', 'mashup', 'edit'}
+        text_lower = text.lower()
+        return any(keyword in text_lower for keyword in special_keywords)
+
     def _song_already_exists(self, artist_dir, artist, song):
         """Check if a song already exists in the directory.
 
         Looks for MP3 files that contain keywords from artist OR song title.
         The 'artist' field contains the song title (due to file format "Song - Artist").
+
+        IMPORTANT: Special versions (Remix, Extended, Intro, Deluxe, etc.) are NOT
+        considered duplicates - they are different versions of the song.
+
         Returns the matching file path if found, None otherwise.
         """
         if not artist_dir.exists():
             return None
 
-        common_words = {'the', 'and', 'feat', 'remix', 'version', 'lyrics', 'letra', 'official', 'video', 'audio'}
+        # If this song is a special version, don't skip it as duplicate
+        full_song_name = f"{artist} {song}"
+        if self._is_special_version(full_song_name):
+            return None  # Special versions are never duplicates
+
+        common_words = {'the', 'and', 'feat', 'featuring', 'ft', 'with', 'vs',
+                        'lyrics', 'letra', 'lyric', 'vietsub', 'sub', 'official',
+                        'video', 'audio', 'hd', 'hq', 'original', 'mix'}
 
         # Get words from the song title (which is in 'artist' due to format)
         title_normalized = self._normalize_text(artist)
@@ -297,6 +314,10 @@ except Exception as e:
         # Check existing MP3 files
         for mp3_file in artist_dir.glob("*.mp3"):
             filename_normalized = self._normalize_text(mp3_file.stem)
+
+            # If existing file is a special version, don't count it as a match
+            if self._is_special_version(mp3_file.stem):
+                continue
 
             # Count title word matches (more important)
             title_matches = sum(1 for word in title_words if word in filename_normalized)
@@ -373,14 +394,19 @@ except Exception as e:
             return False
 
         # Paso 4: Descargar
-        print(f"    ✓ Title: {video_info['title']}")
+        print(f"    ✓ Found: {video_info['title']}")
         print(f"    ⏱ Duration: {duration // 60}:{duration % 60:02d}")
         print(f"    ⬇ Downloading...")
 
         try:
             ytdlp_path = "venv/bin/yt-dlp" if os.path.exists("venv/bin/yt-dlp") else "yt-dlp"
 
-            output_template = str(artist_dir / "%(title)s.%(ext)s")
+            # Use the song name from input file, NOT YouTube title
+            # This ensures proper naming like "Recognise - Lost Frequencies.mp3"
+            # instead of "[Lyrics+Vietsub] Recognise - Lost Frequencies feat. Flynn.mp3"
+            clean_filename = self.sanitize_filename(f"{artist} - {song}")
+            output_file = artist_dir / f"{clean_filename}.mp3"
+            output_template = str(output_file).replace('.mp3', '.%(ext)s')
 
             cmd = [
                 ytdlp_path,
@@ -389,8 +415,6 @@ except Exception as e:
                 "--audio-quality", "0",
                 "--embed-thumbnail",
                 "--add-metadata",
-                "--metadata-from-title", "%(artist)s - %(title)s",
-                "--parse-metadata", f"title:{artist}",
                 "-o", output_template,
                 "--no-playlist",
                 "--quiet",
@@ -402,18 +426,32 @@ except Exception as e:
 
             if result.returncode == 0:
                 # Paso 5: Detectar KEY musical
-                downloaded_files = list(artist_dir.glob("*.mp3"))
-                if downloaded_files:
-                    latest_file = max(downloaded_files, key=os.path.getctime)
-
+                if output_file.exists():
+                    print(f"    📁 Saved as: {clean_filename}.mp3")
                     print(f"    🎵 Detecting musical KEY...")
-                    key = self.detect_key(str(latest_file))
+                    key = self.detect_key(str(output_file))
 
                     if key:
                         print(f"    🎹 KEY detected: {key}")
-                        self.add_key_metadata(str(latest_file), key)
+                        self.add_key_metadata(str(output_file), key)
                     else:
                         print(f"    ℹ KEY not detected (requires essentia)")
+                else:
+                    # Fallback: find the most recently created file
+                    downloaded_files = list(artist_dir.glob("*.mp3"))
+                    if downloaded_files:
+                        latest_file = max(downloaded_files, key=os.path.getctime)
+                        # Rename to proper name
+                        latest_file.rename(output_file)
+                        print(f"    📁 Saved as: {clean_filename}.mp3")
+                        print(f"    🎵 Detecting musical KEY...")
+                        key = self.detect_key(str(output_file))
+
+                        if key:
+                            print(f"    🎹 KEY detected: {key}")
+                            self.add_key_metadata(str(output_file), key)
+                        else:
+                            print(f"    ℹ KEY not detected (requires essentia)")
 
                 print(f"    ✓ Downloaded successfully")
                 return True
