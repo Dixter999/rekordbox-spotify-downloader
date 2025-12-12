@@ -283,8 +283,8 @@ except Exception as e:
     def _song_already_exists(self, artist_dir, artist, song):
         """Check if a song already exists in the directory.
 
-        Looks for MP3 files that contain keywords from artist OR song title.
-        The 'artist' field contains the song title (due to file format "Song - Artist").
+        Format: "Artist - Song" so artist="Lost Frequencies", song="Crazy"
+        Files are saved as "Artist - Song.mp3" e.g. "Lost Frequencies - Crazy.mp3"
 
         IMPORTANT: Special versions (Remix, Extended, Intro, Deluxe, etc.) are NOT
         considered duplicates - they are different versions of the song.
@@ -295,23 +295,15 @@ except Exception as e:
             return None
 
         # If this song is a special version, don't skip it as duplicate
-        full_song_name = f"{artist} {song}"
+        full_song_name = f"{artist} - {song}"
         if self._is_special_version(full_song_name):
             return None  # Special versions are never duplicates
 
-        common_words = {'the', 'and', 'feat', 'featuring', 'ft', 'with', 'vs',
-                        'lyrics', 'letra', 'lyric', 'vietsub', 'sub', 'official',
-                        'video', 'audio', 'hd', 'hq', 'original', 'mix'}
+        # Create the expected filename
+        expected_filename = self.sanitize_filename(f"{artist} - {song}")
+        expected_normalized = self._normalize_text(expected_filename)
 
-        # Get words from the song title (which is in 'artist' due to format)
-        title_normalized = self._normalize_text(artist)
-        title_words = [w for w in re.split(r'[\s\-\(\)\[\],]+', title_normalized) if len(w) > 2 and w not in common_words]
-
-        # Get words from artist names (which is in 'song' due to format)
-        artist_normalized = self._normalize_text(song)
-        artist_words = [w for w in re.split(r'[\s\-\(\)\[\],]+', artist_normalized) if len(w) > 2 and w not in common_words]
-
-        # Check existing MP3 files
+        # Check for exact match first (most reliable)
         for mp3_file in artist_dir.glob("*.mp3"):
             filename_normalized = self._normalize_text(mp3_file.stem)
 
@@ -319,22 +311,48 @@ except Exception as e:
             if self._is_special_version(mp3_file.stem):
                 continue
 
-            # Count title word matches (more important)
-            title_matches = sum(1 for word in title_words if word in filename_normalized)
-
-            # Count artist word matches
-            artist_matches = sum(1 for word in artist_words if word in filename_normalized)
-
-            # Match if: majority of title words match, OR good mix of both
-            title_ratio = title_matches / len(title_words) if title_words else 0
-
-            # Primary check: if most title words match (>=60%), it's likely the same song
-            if title_words and title_ratio >= 0.6 and title_matches >= 1:
+            # Exact match (ignoring case and accents)
+            if filename_normalized == expected_normalized:
                 return mp3_file
 
-            # Secondary check: at least 2 title words + 1 artist word
-            if title_matches >= 2 and artist_matches >= 1:
-                return mp3_file
+        # Fuzzy match: check if song title words match
+        # The SONG TITLE is most important for matching, not the artist
+        common_words = {'the', 'and', 'feat', 'featuring', 'ft', 'with', 'vs',
+                        'lyrics', 'letra', 'lyric', 'vietsub', 'sub', 'official',
+                        'video', 'audio', 'hd', 'hq', 'original', 'mix'}
+
+        # Get words from the SONG title (this is what matters for duplicate detection)
+        song_normalized = self._normalize_text(song)
+        song_words = [w for w in re.split(r'[\s\-\(\)\[\],]+', song_normalized) if len(w) > 2 and w not in common_words]
+
+        # Only do fuzzy matching if we have song words to match
+        if not song_words:
+            return None
+
+        for mp3_file in artist_dir.glob("*.mp3"):
+            filename_normalized = self._normalize_text(mp3_file.stem)
+
+            # If existing file is a special version, don't count it as a match
+            if self._is_special_version(mp3_file.stem):
+                continue
+
+            # Count song title word matches (the song title must match, not just artist)
+            song_matches = sum(1 for word in song_words if word in filename_normalized)
+            song_ratio = song_matches / len(song_words)
+
+            # Require ALL song words to match (or at least 80% for longer titles)
+            if len(song_words) == 1:
+                # Single word song title: must match exactly
+                if song_ratio >= 1.0:
+                    return mp3_file
+            elif len(song_words) == 2:
+                # Two word title: both must match
+                if song_ratio >= 1.0:
+                    return mp3_file
+            else:
+                # Longer titles: 80% must match
+                if song_ratio >= 0.8:
+                    return mp3_file
 
         return None
 
