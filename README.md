@@ -56,185 +56,255 @@ Now you can build a complete Rekordbox library from your Spotify playlists with 
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (5 Minutes Setup)
 
-### Prerequisites
+### Step 1: Install the Tool
 
-- **Python 3.8+**
-- **FFmpeg** (for audio conversion)
-- **WSL** (if using Windows)
-- **Spotify Account** (for playlist extraction)
-
-### Installation
-
-1. **Clone the repository:**
 ```bash
+# Clone the repository
 git clone https://github.com/Dixter999/rekordbox-spotify-downloader.git
 cd rekordbox-spotify-downloader
-```
 
-2. **Create virtual environment:**
-```bash
+# Create virtual environment
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+source venv/bin/activate
 
-3. **Install dependencies:**
-```bash
+# Install Python dependencies
 pip install -r requirements.txt
+
+# Install system dependencies (Ubuntu/Debian/WSL)
+sudo apt update && sudo apt install -y ffmpeg
 ```
 
-4. **Install system dependencies:**
+<details>
+<summary>📦 macOS Installation</summary>
+
 ```bash
-# Ubuntu/Debian/WSL
-sudo apt update
-sudo apt install ffmpeg build-essential libeigen3-dev libfftw3-dev \
+brew install ffmpeg python3
+```
+</details>
+
+<details>
+<summary>📦 Full dependencies for KEY detection (optional)</summary>
+
+```bash
+# Ubuntu/Debian/WSL - for Essentia KEY detection
+sudo apt install build-essential libeigen3-dev libfftw3-dev \
     libavcodec-dev libavformat-dev libavutil-dev libswresample-dev \
     libsamplerate0-dev libtag1-dev libyaml-dev python3-dev
+```
+</details>
 
-# macOS
-brew install ffmpeg eigen fftw libsamplerate libyaml
+---
+
+## 📖 How to Download Music (Step-by-Step)
+
+### 🎯 Option 1: From Spotify Playlist (Recommended)
+
+This is the easiest method - export your Spotify playlist and download all songs!
+
+---
+
+#### **Step 1: Export Your Spotify Playlist**
+
+1. Open **[Exportify.net](https://exportify.net/)** in your browser
+2. Click **"Get Started"** and log in with your Spotify account
+3. Find your playlist and click the green **"Export"** button
+4. A CSV file will download (e.g., `My_Playlist.csv`)
+
+```
+📁 Downloads/
+   └── My_Playlist.csv   ← Downloaded from Exportify
 ```
 
 ---
 
-## 📖 Usage
+#### **Step 2: Convert CSV to Song List**
 
-> **⚠️ Important Note About Repositories:**
->
-> This project uses **TWO separate repositories**:
-> 1. **This repo** (rekordbox-spotify-downloader) - Main tool for downloading and KEY detection
-> 2. **[spotify-backup](https://github.com/caseychu/spotify-backup)** - Third-party tool for extracting Spotify playlists (only needed if you use Option 2)
->
-> **If you don't use Spotify playlists**, you only need this repo (Option 1)!
+Move the CSV file to your project folder and convert it:
 
----
+```bash
+# Activate the virtual environment
+source venv/bin/activate
 
-### Option 1: Download from a Simple Song List (No Spotify Needed)
-
-**1. Create a text file with song names:**
-
-`songs.txt`:
+# Convert the CSV to a text file
+python3 convert_csv_to_txt.py My_Playlist.csv
 ```
+
+**Output:**
+```
+✓ Converted 85 songs from My_Playlist.csv
+✓ Created: My_Playlist.txt
+```
+
+The text file looks like this:
+```
+# Converted from My_Playlist.csv
+# Total songs: 85
+
 Martin Garrix - Animals
 Lost Frequencies - Are You With Me
 Avicii - Levels
-David Guetta, Bebe Rexha - I'm Good (Blue)
+David Guetta - Titanium
+...
 ```
 
-**2. Download with KEY and BPM detection:**
+---
+
+#### **Step 3: Download All Songs**
+
+Now download all songs to a folder (e.g., `HOUSE`):
+
+```bash
+python3 youtube_to_rekordbox_enhanced.py My_Playlist.txt --output rekordbox_music/HOUSE --prefer-lyrics
+```
+
+**Example Output:**
+```
+═══════════════════════════════════════════════
+  YouTube to Rekordbox MP3 Downloader Enhanced
+═══════════════════════════════════════════════
+Total songs: 85
+Output directory: /home/user/rekordbox_music/HOUSE
+Duration filter: 1:30 - 10:00
+Prefer lyrics: Yes
+═══════════════════════════════════════════════
+
+[1/85] Processing: Martin Garrix - Animals
+    Folder: rekordbox_music/HOUSE
+    🔍 Searching for video...
+    🎤 Found lyrics version
+    ✓ Title: Martin Garrix - Animals (Lyrics)
+    ⏱ Duration: 5:04
+    ⬇ Downloading...
+    🎵 Detecting musical KEY...
+    🎹 KEY detected: 4A
+    ✓ Downloaded successfully
+
+[2/85] Processing: Lost Frequencies - Are You With Me
+    Folder: rekordbox_music/HOUSE
+    🔍 Searching for video...
+    🎤 Found lyrics version
+    ✓ Title: Lost Frequencies - Are You With Me (Lyrics)
+    ⏱ Duration: 2:22
+    ⬇ Downloading...
+    🎵 Detecting musical KEY...
+    🎹 KEY detected: 4B
+    ✓ Downloaded successfully
+
+[3/85] Processing: Avicii - Levels
+    ⏭ SKIPPED: Already exists as 'Levels (Lyrics).mp3'
+
+...
+
+══════════════════════════════════════════════════
+  DOWNLOAD SUMMARY
+══════════════════════════════════════════════════
+Total processed: 85
+✓ Downloaded: 72
+⏭ Already existed: 10
+⊘ Skipped (quality): 2
+✗ Failed: 1
+
+⊘ Songs skipped (low quality):
+   - DJ Snake - Turn Down for What (too long: 12:34)
+   - Random Artist - Live at Festival (contains: live)
+
+📁 Songs saved to: /home/user/rekordbox_music/HOUSE
+
+💡 Next step: Import the folder into Rekordbox
+```
+
+---
+
+#### **Step 4: Import into Rekordbox**
+
+1. Open **Rekordbox**
+2. Go to **File → Import → Import Folder**
+3. Select `rekordbox_music/HOUSE`
+4. Your songs are now ready with **KEY** (Camelot notation) already tagged! 🎹
+
+---
+
+### 📝 Complete Example Workflow
+
+```bash
+# 1. Setup (only once)
+git clone https://github.com/Dixter999/rekordbox-spotify-downloader.git
+cd rekordbox-spotify-downloader
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 2. Download your playlist from Exportify.net and move it here
+mv ~/Downloads/Summer_Hits_2025.csv .
+
+# 3. Convert to song list
+python3 convert_csv_to_txt.py Summer_Hits_2025.csv
+
+# 4. Download all songs
+python3 youtube_to_rekordbox_enhanced.py Summer_Hits_2025.txt --output rekordbox_music/SUMMER --prefer-lyrics
+
+# 5. Done! Your music is in rekordbox_music/SUMMER/
+ls rekordbox_music/SUMMER/
+```
+
+---
+
+### 🎵 Option 2: From a Simple Text File
+
+Don't have Spotify? Just create a text file manually:
+
+**1. Create `my_songs.txt`:**
+```
+Martin Garrix - Animals
+Avicii - Levels
+Calvin Harris - Summer
+David Guetta - Titanium
+```
+
+**2. Download:**
 ```bash
 source venv/bin/activate
-python3 youtube_to_rekordbox_enhanced.py songs.txt
-```
-
-**3. Organize by folder (optional):**
-```bash
-# Download into HOUSE folder
-python3 youtube_to_rekordbox_enhanced.py house_songs.txt --folder HOUSE
-
-# Download into POP folder with custom min duration
-python3 youtube_to_rekordbox_enhanced.py pop_songs.txt --min-duration 120 --folder POP
-
-# Disable lyrics video preference (search for "audio" instead)
-python3 youtube_to_rekordbox_enhanced.py songs.txt --no-lyrics
+python3 youtube_to_rekordbox_enhanced.py my_songs.txt --output rekordbox_music/EDM --prefer-lyrics
 ```
 
 ---
 
-### Option 2: Export from Spotify with Exportify (Recommended)
+### ⚙️ Command Line Options
 
-The easiest way to get your Spotify playlists!
+| Option | Description | Example |
+|--------|-------------|---------|
+| `--output` | Output folder | `--output rekordbox_music/HOUSE` |
+| `--prefer-lyrics` | Search for lyrics videos (cleaner audio) | `--prefer-lyrics` |
+| `--no-lyrics` | Search for official/audio videos | `--no-lyrics` |
+| `--min-duration` | Minimum song length in seconds | `--min-duration 120` |
+| `--max-duration` | Maximum song length in seconds | `--max-duration 480` |
 
-**1. Go to [Exportify](https://exportify.net/):**
-- Log in with your Spotify account
-- Click "Export" on any playlist to download a CSV file
-
-**2. Convert CSV to song list:**
+**Examples:**
 ```bash
-python3 convert_csv_to_txt.py my_playlist.csv
-# Creates: my_playlist.txt
-```
+# Download to HOUSE folder with lyrics preference
+python3 youtube_to_rekordbox_enhanced.py playlist.txt --output rekordbox_music/HOUSE --prefer-lyrics
 
-**3. Download the songs:**
-```bash
-python3 youtube_to_rekordbox_enhanced.py my_playlist.txt --folder HOUSE
-```
+# Download with custom duration limits (2-8 minutes)
+python3 youtube_to_rekordbox_enhanced.py playlist.txt --output rekordbox_music/POP --min-duration 120 --max-duration 480
 
-**That's it!** No OAuth setup, no API keys - just export and download.
-
----
-
-### Option 3: Extract from Your Spotify Playlists (Advanced)
-
-For more control, you can use the spotify-backup tool:
-
-**1. Get your Spotify data:**
-
-First, clone the spotify-backup tool (only needs to be done once):
-```bash
-git clone https://github.com/caseychu/spotify-backup.git
-```
-
-Then authenticate with your Spotify account:
-```bash
-cd spotify-backup
-python3 spotify-backup.py youremail@example.com
-cd ..
-```
-
-This will:
-- Open your browser for Spotify OAuth login
-- Download all your playlists to a JSON file: `youremail@example_2025_11_13.json`
-
-**2. Extract specific playlists:**
-
-```bash
-python3 extract_spotify_playlists.py spotify-backup/youremail@example_2025_11_13.json
-```
-
-The script will ask which playlists you want to extract. It creates text files like:
-- `spotify_HOUSE.txt`
-- `spotify_POP.txt`
-- etc.
-
-**3. Download the songs:**
-```bash
-# Download HOUSE playlist
-python3 youtube_to_rekordbox_enhanced.py spotify_HOUSE.txt 90 HOUSE
-
-# Download POP playlist
-python3 youtube_to_rekordbox_enhanced.py spotify_POP.txt 90 POP
+# Download without lyrics preference
+python3 youtube_to_rekordbox_enhanced.py playlist.txt --output rekordbox_music/EDM --no-lyrics
 ```
 
 ---
 
-### Simple 3-Step Workflow Summary
+### 🔄 Update KEY/BPM for Existing Files
+
+Already have MP3 files? Add KEY detection to them:
 
 ```bash
-# Step 1: Get your Spotify playlists (one-time setup)
-git clone https://github.com/caseychu/spotify-backup.git
-cd spotify-backup && python3 spotify-backup.py youremail@example.com && cd ..
-
-# Step 2: Extract the playlists you want
-python3 extract_spotify_playlists.py spotify-backup/youremail@example_2025_11_13.json
-
-# Step 3: Download with KEY/BPM detection
-python3 youtube_to_rekordbox_enhanced.py spotify_HOUSE.txt 90 HOUSE
-```
-
-Done! Your music is now in `rekordbox_music/HOUSE/` with KEY (Camelot) and BPM tags.
-
-### 3. Update Metadata for Existing Files
-
-**Update KEY and BPM for all folders:**
-```bash
+# Update all folders
 ./update_all_metadata.sh
-```
 
-**Update specific folder:**
-```bash
-python update_metadata.py /path/to/your/music/folder
+# Update specific folder
+python3 update_metadata.py rekordbox_music/HOUSE
 ```
 
 ---
@@ -401,8 +471,9 @@ pip install -r requirements.txt
 - [ ] GUI interface
 - [ ] Docker container
 - [ ] Advanced playlist management
-- [ ] Duplicate detection
+- [x] ~~Duplicate detection~~ ✅ Implemented!
 - [ ] Waveform generation
+- [ ] BPM detection integration
 
 ---
 
