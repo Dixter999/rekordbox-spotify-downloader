@@ -51,17 +51,19 @@ class YouTubeToRekordbox:
         """Checks if the song should be skipped due to quality filters"""
         title_lower = title.lower()
 
-        # Low quality filters
+        # Low quality filters - skip live performances, not song titles with "live"
         skip_keywords = [
             'unreleased',
-            'live',
-            'live at',
-            'live from',
-            'live in',
+            'live at ',
+            'live from ',
+            'live in ',
+            '(live)',
+            '[live]',
+            ' live version',
+            ' live performance',
             'concert',
-            'tour',
-            'remix live',
-            'bootleg live'
+            'tour version',
+            'bootleg'
         ]
 
         for keyword in skip_keywords:
