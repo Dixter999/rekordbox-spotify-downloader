@@ -9,16 +9,19 @@ import sys
 import subprocess
 import re
 import json
+import unicodedata
 from pathlib import Path
 
 
 class YouTubeToRekordbox:
-    def __init__(self, output_dir="rekordbox_music", min_duration=90, main_folder=None, prefer_lyrics=True):
+    def __init__(self, output_dir="rekordbox_music", min_duration=90, max_duration=600, main_folder=None, prefer_lyrics=True):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         self.failed_downloads = []
         self.skipped_songs = []
+        self.skipped_duplicates = 0
         self.min_duration = min_duration  # Minimum duration in seconds (1:30 = 90s)
+        self.max_duration = max_duration  # Maximum duration in seconds (10:00 = 600s)
         self.main_folder = main_folder  # Main folder for grouping (HOUSE, POP, etc)
         self.prefer_lyrics = prefer_lyrics  # Prefer lyrics videos over official videos
 
@@ -188,9 +191,12 @@ class YouTubeToRekordbox:
     def detect_key(self, audio_file):
         """Detecta la KEY musical usando essentia y convierte to Camelot"""
         try:
+            # Use venv python if available, otherwise system python
+            python_path = "venv/bin/python" if os.path.exists("venv/bin/python") else "python3"
+
             # Intentar con essentia primero (más preciso para KEY)
             cmd = [
-                "python3", "-c",
+                python_path, "-c",
                 f"""
 import sys
 try:
@@ -226,9 +232,12 @@ except Exception as e:
     def add_key_metadata(self, audio_file, key):
         """Agrega la KEY como metadata al archivo MP3"""
         try:
+            # Use venv python if available, otherwise system python
+            python_path = "venv/bin/python" if os.path.exists("venv/bin/python") else "python3"
+
             # Usar eyeD3 o mutagen para agregar metadatos
             cmd = [
-                "python3", "-c",
+                python_path, "-c",
                 f"""
 import sys
 try:
@@ -258,26 +267,76 @@ except Exception as e:
             print(f"    ⚠ Error agregando KEY a metadatos: {str(e)}")
             return False
 
+    def _normalize_text(self, text):
+        """Normalize text by removing accents and converting to lowercase."""
+        # Normalize unicode and remove accents
+        normalized = unicodedata.normalize('NFD', text)
+        ascii_text = ''.join(c for c in normalized if unicodedata.category(c) != 'Mn')
+        return ascii_text.lower()
+
+    def _song_already_exists(self, artist_dir, artist, song):
+        """Check if a song already exists in the directory.
+
+        Looks for MP3 files that contain keywords from artist OR song title.
+        The 'artist' field contains the song title (due to file format "Song - Artist").
+        Returns the matching file path if found, None otherwise.
+        """
+        if not artist_dir.exists():
+            return None
+
+        common_words = {'the', 'and', 'feat', 'remix', 'version', 'lyrics', 'letra', 'official', 'video', 'audio'}
+
+        # Get words from the song title (which is in 'artist' due to format)
+        title_normalized = self._normalize_text(artist)
+        title_words = [w for w in re.split(r'[\s\-\(\)\[\],]+', title_normalized) if len(w) > 2 and w not in common_words]
+
+        # Get words from artist names (which is in 'song' due to format)
+        artist_normalized = self._normalize_text(song)
+        artist_words = [w for w in re.split(r'[\s\-\(\)\[\],]+', artist_normalized) if len(w) > 2 and w not in common_words]
+
+        # Check existing MP3 files
+        for mp3_file in artist_dir.glob("*.mp3"):
+            filename_normalized = self._normalize_text(mp3_file.stem)
+
+            # Count title word matches (more important)
+            title_matches = sum(1 for word in title_words if word in filename_normalized)
+
+            # Count artist word matches
+            artist_matches = sum(1 for word in artist_words if word in filename_normalized)
+
+            # Match if: majority of title words match, OR good mix of both
+            title_ratio = title_matches / len(title_words) if title_words else 0
+
+            # Primary check: if most title words match (>=60%), it's likely the same song
+            if title_words and title_ratio >= 0.6 and title_matches >= 1:
+                return mp3_file
+
+            # Secondary check: at least 2 title words + 1 artist word
+            if title_matches >= 2 and artist_matches >= 1:
+                return mp3_file
+
+        return None
+
     def download_song(self, artist, song, index, total):
         """Descarga una canción usando yt-dlp con filtros de calidad"""
-        # If main folder is defined, use that instead of artist folders
-        if self.main_folder:
-            artist_dir = self.output_dir / self.main_folder
-        else:
-            artist_clean = self.sanitize_filename(artist)
-            artist_dir = self.output_dir / artist_clean
+        # All songs go directly into output_dir (no artist subfolders)
+        artist_dir = self.output_dir
 
         # Crear directorio con manejo de errores para symlinks
         try:
             artist_dir.mkdir(parents=True, exist_ok=True)
         except Exception as e:
-            print(f"    ⚠ Error creating folder, using alternative")
-            if not self.main_folder:
-                artist_clean = re.sub(r'[&]', 'and', artist_clean)
-                artist_dir = self.output_dir / artist_clean
-            artist_dir.mkdir(parents=True, exist_ok=True)
+            print(f"    ⚠ Error creating folder: {e}")
 
         print(f"\n[{index}/{total}] Processing: {artist} - {song}")
+
+        # Check for duplicates before downloading
+        existing_file = self._song_already_exists(artist_dir, artist, song)
+        if existing_file:
+            print(f"    ⏭ SKIPPED: Already exists as '{existing_file.name}'")
+            self.skipped_duplicates += 1
+            return True
+
         print(f"    Folder: {artist_dir}")
 
         # Step 1: Search with lyrics priority (if enabled)
@@ -297,13 +356,20 @@ except Exception as e:
             self.skipped_songs.append(f"{artist} - {song} ({reason})")
             return False
 
-        # Paso 3: Verificar duración mínima
+        # Paso 3: Verificar duración mínima y máxima
         duration = video_info.get('duration', 0)
         if duration > 0 and duration < self.min_duration:
             minutes = duration // 60
             seconds = duration % 60
-            print(f"    ⊘ OMITIDO: duración muy corta ({minutes}:{seconds:02d})")
-            self.skipped_songs.append(f"{artist} - {song} (duración: {minutes}:{seconds:02d})")
+            print(f"    ⊘ SKIPPED: too short ({minutes}:{seconds:02d})")
+            self.skipped_songs.append(f"{artist} - {song} (duration: {minutes}:{seconds:02d})")
+            return False
+
+        if duration > 0 and duration > self.max_duration:
+            minutes = duration // 60
+            seconds = duration % 60
+            print(f"    ⊘ SKIPPED: too long ({minutes}:{seconds:02d}) - likely not a song")
+            self.skipped_songs.append(f"{artist} - {song} (too long: {minutes}:{seconds:02d})")
             return False
 
         # Paso 4: Descargar
@@ -389,9 +455,9 @@ except Exception as e:
         print(f"═══════════════════════════════════════════════")
         print(f"Total songs: {len(songs)}")
         print(f"Output directory: {self.output_dir.absolute()}")
-        print(f"Min duration: {self.min_duration // 60}:{self.min_duration % 60:02d}")
+        print(f"Duration filter: {self.min_duration // 60}:{self.min_duration % 60:02d} - {self.max_duration // 60}:{self.max_duration % 60:02d}")
         print(f"Prefer lyrics: {'Yes' if self.prefer_lyrics else 'No'}")
-        print(f"Filters: UNRELEASED, Live, duration < {self.min_duration}s")
+        print(f"Filters: UNRELEASED, Live, too short (<{self.min_duration}s), too long (>{self.max_duration}s)")
         print(f"═══════════════════════════════════════════════\n")
 
         for i, (artist, song) in enumerate(songs, 1):
@@ -399,11 +465,12 @@ except Exception as e:
 
         # Final summary
         print(f"\n{'═'*50}")
-        print(f"  RESUMEN DE DESCARGAS")
+        print(f"  DOWNLOAD SUMMARY")
         print(f"{'═'*50}")
         print(f"Total processed: {len(songs)}")
-        print(f"✓ Successful: {len(songs) - len(self.failed_downloads) - len(self.skipped_songs)}")
-        print(f"⊘ Skippeds: {len(self.skipped_songs)}")
+        print(f"✓ Downloaded: {len(songs) - len(self.failed_downloads) - len(self.skipped_songs) - self.skipped_duplicates}")
+        print(f"⏭ Already existed: {self.skipped_duplicates}")
+        print(f"⊘ Skipped (quality): {len(self.skipped_songs)}")
         print(f"✗ Failed: {len(self.failed_downloads)}")
 
         if self.skipped_songs:
@@ -438,6 +505,8 @@ Examples:
     parser.add_argument('song_file', help='Text file with songs in format: Artist - Song')
     parser.add_argument('--min-duration', type=int, default=90,
                         help='Minimum song duration in seconds (default: 90)')
+    parser.add_argument('--max-duration', type=int, default=600,
+                        help='Maximum song duration in seconds (default: 600 = 10 min)')
     parser.add_argument('--folder', dest='main_folder', default=None,
                         help='Main folder name for grouping downloads (e.g., HOUSE, POP)')
     parser.add_argument('--output', dest='output_dir', default='rekordbox_music',
@@ -465,6 +534,7 @@ Examples:
     downloader = YouTubeToRekordbox(
         output_dir=args.output_dir,
         min_duration=min_duration,
+        max_duration=args.max_duration,
         main_folder=main_folder,
         prefer_lyrics=args.prefer_lyrics
     )
