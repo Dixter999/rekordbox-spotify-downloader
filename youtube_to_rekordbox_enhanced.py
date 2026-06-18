@@ -133,7 +133,8 @@ class YouTubeToRekordbox:
                 search_query
             ]
 
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            # 120s: YouTube PO Token generation (bgutil) can add 10-30s per request
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
 
             if result.returncode == 0:
                 info = json.loads(result.stdout)

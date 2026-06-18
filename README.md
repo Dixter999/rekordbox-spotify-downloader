@@ -97,6 +97,29 @@ sudo apt install build-essential libeigen3-dev libfftw3-dev \
 
 ---
 
+### Step 2: Set Up the YouTube PO Token Provider (Required)
+
+Since 2025, YouTube requires a **PO Token (Proof of Origin)** for downloads. Without it, every request hangs and times out (`No se pudo obtener info del video` / "could not get video info"). `yt-dlp` obtains this token from the [bgutil-ytdlp-pot-provider](https://github.com/Brainicism/bgutil-ytdlp-pot-provider) plugin (installed via `requirements.txt`), which needs a small companion Node.js server.
+
+```bash
+# Requires Node.js 20+ (check with: node --version)
+git clone https://github.com/Brainicism/bgutil-ytdlp-pot-provider ~/bgutil-ytdlp-pot-provider
+cd ~/bgutil-ytdlp-pot-provider/server
+npm install
+npx tsc        # builds build/generate_once.js  (there is no "npm run build")
+cd -
+```
+
+`yt-dlp` automatically detects the script at `~/bgutil-ytdlp-pot-provider/server/build/generate_once.js` — no extra flags needed. Verify it works:
+
+```bash
+node ~/bgutil-ytdlp-pot-provider/server/build/generate_once.js --version   # prints the version
+```
+
+> **Note:** A harmless `WARNING: No supported JavaScript runtime could be found` may still appear during downloads. The bgutil `script-node` provider supplies the token regardless, so downloads succeed.
+
+---
+
 ## 📖 How to Download Music (Step-by-Step)
 
 ### 🎯 Option 1: From Spotify Playlist (Recommended)
@@ -393,6 +416,7 @@ This project integrates several powerful tools:
 
 ### Core Tools
 - **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** - YouTube downloader (replaces youtube-dl)
+- **[bgutil-ytdlp-pot-provider](https://github.com/Brainicism/bgutil-ytdlp-pot-provider)** - Generates YouTube PO Tokens so yt-dlp can fetch videos
 - **[Essentia](https://essentia.upf.edu/)** - Music information retrieval for KEY and BPM detection
 - **[Mutagen](https://mutagen.readthedocs.io/)** - Python library for audio metadata
 - **[FFmpeg](https://ffmpeg.org/)** - Audio/video processing
@@ -425,6 +449,13 @@ This project integrates several powerful tools:
 ---
 
 ## 🛠️ Troubleshooting
+
+### Issue: Downloads hang or time out ("could not get video info")
+**Cause:** YouTube's PO Token requirement is not satisfied — the bgutil provider server isn't set up.
+**Solution:** Complete [Step 2: Set Up the YouTube PO Token Provider](#step-2-set-up-the-youtube-po-token-provider-required). Ensure Node.js 20+ is installed and that this prints a version:
+```bash
+node ~/bgutil-ytdlp-pot-provider/server/build/generate_once.js --version
+```
 
 ### Issue: "Essentia not available"
 **Solution:**

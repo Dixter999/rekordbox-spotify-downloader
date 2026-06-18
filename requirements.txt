@@ -1,5 +1,6 @@
 # Core dependencies
 yt-dlp>=2023.0.0
+bgutil-ytdlp-pot-provider>=1.3.0  # YouTube PO Token provider (needs companion Node server, see README)
 mutagen>=1.46.0
 essentia-tensorflow>=2.1b6.dev
 

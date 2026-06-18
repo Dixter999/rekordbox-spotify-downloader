@@ -26,6 +26,9 @@ spotify_*.txt
 spotify-backup/
 extract_house_only.py
 extract_pop_only.py
+# Personal playlist exports (Exportify CSVs and their converted song lists)
+*.csv
+*.csv:Zone.Identifier
 
 # Logs
 *.log
