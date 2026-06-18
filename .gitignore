@@ -18,6 +18,8 @@ build/
 *.flac
 *.webp
 rekordbox_music/
+rekordbox_music
+
 
 # Spotify personal data (NEVER commit these!)
 *@*.json

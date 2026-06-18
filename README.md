@@ -118,6 +118,10 @@ node ~/bgutil-ytdlp-pot-provider/server/build/generate_once.js --version   # pri
 
 > **Note:** A harmless `WARNING: No supported JavaScript runtime could be found` may still appear during downloads. The bgutil `script-node` provider supplies the token regardless, so downloads succeed.
 
+**How it works (for the curious / forkers):** `yt-dlp` calls the local `generate_once.js` script for each request; the script solves YouTube's challenge and returns a PO Token, which `yt-dlp` attaches to the YouTube API call. This is what lets searches and downloads work without a logged-in browser.
+
+> ⚠️ **Large playlists & rate limiting:** After roughly 40–50 downloads in a short window, YouTube may flag your IP and start rejecting requests with `Sign in to confirm you're not a bot`. This is temporary (usually clears in a few hours). For big playlists, either split them into batches with breaks, or pass browser cookies — see the [Troubleshooting](#issue-sign-in-to-confirm-youre-not-a-bot--downloads-fail-after-many-songs) section.
+
 ---
 
 ## 📖 How to Download Music (Step-by-Step)
@@ -456,6 +460,19 @@ This project integrates several powerful tools:
 ```bash
 node ~/bgutil-ytdlp-pot-provider/server/build/generate_once.js --version
 ```
+
+### Issue: "Sign in to confirm you're not a bot" / downloads fail after many songs
+**Cause:** YouTube rate-limited your IP after many requests in a short time (typically 40–50+). The PO Token alone is no longer enough; YouTube wants account cookies.
+**Solutions:**
+1. **Wait it out** — the flag usually clears within a few hours. Then re-run; already-downloaded songs are skipped automatically (duplicate detection).
+2. **Split large playlists into batches** with breaks between them to avoid tripping the limit.
+3. **Pass browser cookies** so requests look authenticated:
+   ```bash
+   # Export cookies from a logged-in YouTube session in your browser, then:
+   python3 youtube_to_rekordbox_enhanced.py songs.txt --output rekordbox_music/HOUSE \
+       # (add cookie support via yt-dlp: --cookies-from-browser firefox  OR  --cookies cookies.txt)
+   ```
+   The simplest path is `yt-dlp --cookies-from-browser firefox` (or `chrome`) run from a machine where you're logged into YouTube. On WSL, browser cookies from the Windows side are encrypted and not directly readable — use a Linux browser profile or an exported `cookies.txt`.
 
 ### Issue: "Essentia not available"
 **Solution:**
